@@ -118,7 +118,7 @@ public struct AlertToast: View{
         case error(_ color: Color)
         
         ///System image from `SFSymbols`
-        case systemImage(_ name: String, _ color: Color)
+        case systemImage(_ name: String, _ color: Color, font: Font? = nil)
         
         ///Image from Assets
         case image(_ name: String, _ color: Color)
@@ -246,9 +246,10 @@ public struct AlertToast: View{
                     case .error(let color):
                         Image(systemName: "xmark")
                             .foregroundColor(color)
-                    case .systemImage(let name, let color):
+                    case .systemImage(let name, let color, let font):
                         Image(systemName: name)
                             .foregroundColor(color)
+                            .font(font)
                     case .image(let name, let color):
                         Image(name)
                             .renderingMode(.template)
@@ -291,10 +292,11 @@ public struct AlertToast: View{
                     Image(systemName: "xmark")
                         .hudModifier()
                         .foregroundColor(color)
-                case .systemImage(let name, let color):
+                case .systemImage(let name, let color, let font):
                     Image(systemName: name)
                         .hudModifier()
                         .foregroundColor(color)
+                        .font(font)
                 case .image(let name, let color):
                     Image(name)
                         .hudModifier()
@@ -337,7 +339,12 @@ public struct AlertToast: View{
     
     ///Alert View
     public var alert: some View{
-        VStack{
+        var useFrame: Bool = (type != .regular && type != .loading)
+        if case let AlertType.systemImage(_, _, font) = type {
+            if font != nil { useFrame = false }
+        }
+        
+        return VStack{
             switch type{
             case .complete(let color):
                 Spacer()
@@ -347,15 +354,23 @@ public struct AlertToast: View{
                 Spacer()
                 AnimatedXmark(color: color)
                 Spacer()
-            case .systemImage(let name, let color):
+            case .systemImage(let name, let color, let font):
                 Spacer()
-                Image(systemName: name)
-                    .renderingMode(.template)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .scaledToFit()
-                    .foregroundColor(color)
-                    .padding(.bottom)
+                if let font {
+                    Image(systemName: name)
+                        .renderingMode(.template)
+                        .font(font)
+                        .foregroundColor(color)
+                        .padding(.bottom)
+                } else {
+                    Image(systemName: name)
+                        .renderingMode(.template)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .scaledToFit()
+                        .foregroundColor(color)
+                        .padding(.bottom)
+                }
                 Spacer()
             case .image(let name, let color):
                 Spacer()
@@ -389,7 +404,7 @@ public struct AlertToast: View{
             }
         }
         .padding()
-        .withFrame(type != .regular && type != .loading)
+        .withFrame(useFrame)
         .alertBackground(style?.backgroundColor ?? nil)
         .cornerRadius(10)
     }
