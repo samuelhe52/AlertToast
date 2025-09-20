@@ -273,7 +273,7 @@ public struct AlertToast: View{
             .padding()
             .frame(maxWidth: 400, alignment: .leading)
             .alertBackground(style?.backgroundColor ?? nil)
-            .cornerRadius(10)
+            .clipShape(.rect(cornerRadius: 10))
             .padding([.horizontal, .bottom])
         }
     }
@@ -631,12 +631,16 @@ fileprivate struct BackgroundModifier: ViewModifier{
     
     @ViewBuilder
     func body(content: Content) -> some View {
-        if let color = color {
-            content
-                .background(color)
-        }else{
-            content
-                .background(BlurView())
+        if #available(iOS 26, macOS 26, *){
+            content.glassEffect(.regular.tint(color))
+        } else {
+            if let color = color {
+                content
+                    .background(color)
+            }else{
+                content
+                    .background(BlurView())
+            }
         }
     }
 }
