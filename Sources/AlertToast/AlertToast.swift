@@ -123,6 +123,9 @@ public struct AlertToast: View{
         ///Image from Assets
         case image(_ name: String, _ color: Color)
         
+        ///Determinate progress indicator (0...1)
+        case progress(_ value: Double, _ color: Color)
+        
         ///Loading indicator (Circular)
         case loading
         
@@ -253,6 +256,9 @@ public struct AlertToast: View{
                         Image(name)
                             .renderingMode(.template)
                             .foregroundColor(color)
+                    case .progress(let value, let color):
+                        ProgressView(value: value)
+                            .accentColor(color)
                     case .loading:
                          ActivityIndicator(color: style?.activityIndicatorColor ?? .white)
                     case .regular:
@@ -299,6 +305,11 @@ public struct AlertToast: View{
                     Image(name)
                         .hudModifier()
                         .foregroundColor(color)
+                case .progress(let value, let color):
+                    ProgressView(value: value)
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .accentColor(color)
+                        .frame(maxWidth: 20, maxHeight: 20, alignment: .center)
                 case .loading:
                     ActivityIndicator(color: style?.activityIndicatorColor ?? .white)
                 case .regular:
@@ -366,6 +377,13 @@ public struct AlertToast: View{
                     .foregroundColor(color)
                     .padding(.bottom)
                 Spacer()
+            case .progress(let value, let color):
+                Spacer()
+                ProgressView(value: value)
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .accentColor(color)
+                    .padding(.bottom)
+                Spacer()
             case .loading:
                  ActivityIndicator(color: style?.activityIndicatorColor ?? .white)
             case .regular:
@@ -389,7 +407,16 @@ public struct AlertToast: View{
             }
         }
         .padding()
-        .withFrame(type != .regular && type != .loading)
+        .withFrame(
+            {
+                switch type {
+                case .regular, .loading, .progress(_, _):
+                    return false
+                default:
+                    return true
+                }
+            }()
+        )
         .alertBackground(style?.backgroundColor ?? nil)
         .cornerRadius(10)
     }
@@ -583,9 +610,12 @@ public struct AlertToastModifier: ViewModifier{
             return
         }
         
-        if alert().type == .loading{
+        switch alert().type {
+        case .loading, .progress(_, _):
             duration = 0
             tapToDismiss = false
+        default:
+            break
         }
         
         if duration > 0{
