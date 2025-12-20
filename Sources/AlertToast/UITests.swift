@@ -25,7 +25,7 @@ struct TestView: View {
                 let progressString = String(format: "%.1f", progress)
                 return AlertToast(displayMode: .hud,
                            type: .progress(progress),
-                           title: "\(progressString) / 1.0")
+                           title: "123/123")
             })
     }
     

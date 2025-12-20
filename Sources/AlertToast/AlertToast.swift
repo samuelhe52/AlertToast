@@ -267,11 +267,15 @@ public struct AlertToast: View{
                                     .monospacedDigit()
                             } else {
                                 ProgressView(value: value)
-                                    .monospacedDigit()
                             }
                         }
-                        .progressViewStyle(.linear)
-                        .accentColor(progressColor)
+                        .progressViewStyle(
+                            CircularRingProgressViewStyle(
+                                color: progressColor,
+                                lineWidth: 3,
+                                size: 20
+                            )
+                        )
                     case .loading:
                          ActivityIndicator(color: style?.activityIndicatorColor ?? .white)
                     case .regular:
@@ -327,7 +331,6 @@ public struct AlertToast: View{
                                 .monospacedDigit()
                         } else {
                             ProgressView(value: value)
-                                .monospacedDigit()
                         }
                     }
                     .progressViewStyle(
@@ -415,18 +418,17 @@ public struct AlertToast: View{
                 Group {
                     if let title {
                         ProgressView(LocalizedStringKey(title), value: value)
-                            .monospacedDigit()
-                        
+                            .monospacedDigit() 
                     } else {
                         ProgressView(value: value)
-                            .monospacedDigit()
                     }
                 }
                 .progressViewStyle(
                     CircularRingProgressViewStyle(
                         color: progressColor,
                         lineWidth: 5,
-                        size: 56
+                        size: 44,
+                        orientation: .vertical
                     )
                 )
             case .loading:
@@ -741,30 +743,49 @@ fileprivate struct TextForegroundModifier: ViewModifier{
 
 @available(iOS 14, macOS 11, *)
 fileprivate struct CircularRingProgressViewStyle: ProgressViewStyle {
+    enum Orientation {
+        case horizontal
+        case vertical
+    }
+
     var color: Color = .accentColor
     var lineWidth: CGFloat = 4
     var size: CGFloat = 22
+    var orientation: Orientation = .horizontal
 
     func makeBody(configuration: Configuration) -> some View {
         let fraction = CGFloat(min(max(configuration.fractionCompleted ?? 0, 0), 1))
 
-        return HStack(spacing: 8) {
-            ZStack {
-                Circle()
-                    .stroke(color.opacity(0.2), lineWidth: lineWidth)
+        let ring = ZStack {
+            Circle()
+                .stroke(color.opacity(0.2), lineWidth: lineWidth)
 
-                Circle()
-                    .trim(from: 0, to: fraction)
-                    .stroke(
-                        color,
-                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: 0.2), value: fraction)
-            }
-            .frame(width: size, height: size, alignment: .center)
+            Circle()
+                .trim(from: 0, to: fraction)
+                .stroke(
+                    color,
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .animation(.easeInOut(duration: 0.2), value: fraction)
+        }
+        .frame(width: size, height: size, alignment: .center)
 
-            configuration.label
+        switch orientation {
+        case .horizontal:
+            return AnyView(
+                HStack(spacing: 12) {
+                    ring
+                    configuration.label
+                }
+            )
+        case .vertical:
+            return AnyView(
+                VStack(spacing: 8) {
+                    ring
+                    configuration.label
+                }
+            )
         }
     }
 }
