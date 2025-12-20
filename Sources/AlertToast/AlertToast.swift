@@ -124,7 +124,7 @@ public struct AlertToast: View{
         case image(_ name: String, _ color: Color)
         
         ///Determinate progress indicator (0...1)
-        case progress(_ value: Double, _ color: Color)
+        case progress(_ value: Double)
         
         ///Loading indicator (Circular)
         case loading
@@ -209,6 +209,10 @@ public struct AlertToast: View{
     
     ///Customize your alert appearance
     public var style: AlertStyle? = nil
+
+    private var progressColor: Color {
+        style?.activityIndicatorColor ?? .accentColor
+    }
     
     ///Full init
     public init(displayMode: DisplayMode = .alert,
@@ -256,17 +260,32 @@ public struct AlertToast: View{
                         Image(name)
                             .renderingMode(.template)
                             .foregroundColor(color)
-                    case .progress(let value, let color):
-                        ProgressView(value: value)
-                            .accentColor(color)
+                    case .progress(let value):
+                        Group {
+                            if let title {
+                                ProgressView(LocalizedStringKey(title), value: value)
+                                    .monospacedDigit()
+                            } else {
+                                ProgressView(value: value)
+                            }
+                        }
+                        .progressViewStyle(
+                            CircularRingProgressViewStyle(
+                                color: progressColor,
+                                lineWidth: 3,
+                                size: 20
+                            )
+                        )
                     case .loading:
                          ActivityIndicator(color: style?.activityIndicatorColor ?? .white)
                     case .regular:
                         EmptyView()
                     }
                     
-                    Text(LocalizedStringKey(title ?? ""))
-                        .font(style?.titleFont ?? Font.headline.bold())
+                    if !isProgress {
+                        Text(LocalizedStringKey(title ?? ""))
+                            .font(style?.titleFont ?? Font.headline.bold())
+                    }
                 }
                 
                 if let subTitle = subTitle {
@@ -305,18 +324,29 @@ public struct AlertToast: View{
                     Image(name)
                         .hudModifier()
                         .foregroundColor(color)
-                case .progress(let value, let color):
-                    ProgressView(value: value)
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .accentColor(color)
-                        .frame(maxWidth: 20, maxHeight: 20, alignment: .center)
+                case .progress(let value):
+                    Group {
+                        if let title {
+                            ProgressView(LocalizedStringKey(title), value: value)
+                                .monospacedDigit()
+                        } else {
+                            ProgressView(value: value)
+                        }
+                    }
+                    .progressViewStyle(
+                        CircularRingProgressViewStyle(
+                            color: progressColor,
+                            lineWidth: 3,
+                            size: 22
+                        )
+                    )
                 case .loading:
                     ActivityIndicator(color: style?.activityIndicatorColor ?? .white)
                 case .regular:
                     EmptyView()
                 }
                 
-                if title != nil || subTitle != nil{
+                if (title != nil || subTitle != nil) && !isProgress {
                     VStack(alignment: type == .regular ? .center : .leading, spacing: 2){
                         if let title = title {
                             Text(LocalizedStringKey(title))
@@ -344,6 +374,13 @@ public struct AlertToast: View{
             .compositingGroup()
         }
         .padding(.top)
+    }
+    
+    var isProgress: Bool {
+        if case .progress(_) = type {
+            return true
+        }
+        return false
     }
     
     ///Alert View
@@ -377,13 +414,23 @@ public struct AlertToast: View{
                     .foregroundColor(color)
                     .padding(.bottom)
                 Spacer()
-            case .progress(let value, let color):
-                Spacer()
-                ProgressView(value: value)
-                    .progressViewStyle(CircularProgressViewStyle())
-                    .accentColor(color)
-                    .padding(.bottom)
-                Spacer()
+            case .progress(let value):
+                Group {
+                    if let title {
+                        ProgressView(LocalizedStringKey(title), value: value)
+                        
+                    } else {
+                        ProgressView(value: value)
+                    }
+                }
+                .progressViewStyle(
+                    CircularRingProgressViewStyle(
+                        color: progressColor,
+                        lineWidth: 5,
+                        size: 44,
+                        orientation: .vertical
+                    )
+                )
             case .loading:
                  ActivityIndicator(color: style?.activityIndicatorColor ?? .white)
             case .regular:
@@ -410,7 +457,7 @@ public struct AlertToast: View{
         .withFrame(
             {
                 switch type {
-                case .regular, .loading, .progress(_, _):
+                case .regular, .loading, .progress(_):
                     return false
                 default:
                     return true
@@ -611,7 +658,7 @@ public struct AlertToastModifier: ViewModifier{
         }
         
         switch alert().type {
-        case .loading, .progress(_, _):
+        case .loading, .progress(_):
             duration = 0
             tapToDismiss = false
         default:
@@ -662,7 +709,7 @@ fileprivate struct BackgroundModifier: ViewModifier{
     @ViewBuilder
     func body(content: Content) -> some View {
         if #available(iOS 26, macOS 26, *){
-            content.glassEffect(.regular.tint(color))
+            content.glassEffect(.regular.tint(color), in: .rect(cornerRadius: 10))
         } else {
             if let color = color {
                 content
@@ -688,6 +735,55 @@ fileprivate struct TextForegroundModifier: ViewModifier{
                 .foregroundColor(color)
         }else{
             content
+        }
+    }
+}
+
+@available(iOS 14, macOS 11, *)
+fileprivate struct CircularRingProgressViewStyle: ProgressViewStyle {
+    enum Orientation {
+        case horizontal
+        case vertical
+    }
+
+    var color: Color = .accentColor
+    var lineWidth: CGFloat = 4
+    var size: CGFloat = 22
+    var orientation: Orientation = .horizontal
+
+    func makeBody(configuration: Configuration) -> some View {
+        let fraction = CGFloat(min(max(configuration.fractionCompleted ?? 0, 0), 1))
+
+        let ring = ZStack {
+            Circle()
+                .stroke(color.opacity(0.2), lineWidth: lineWidth)
+
+            Circle()
+                .trim(from: 0, to: fraction)
+                .stroke(
+                    color,
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .animation(.easeInOut(duration: 0.2), value: fraction)
+        }
+        .frame(width: size, height: size, alignment: .center)
+
+        switch orientation {
+        case .horizontal:
+            return AnyView(
+                HStack(spacing: 12) {
+                    ring
+                    configuration.label
+                }
+            )
+        case .vertical:
+            return AnyView(
+                VStack(spacing: 8) {
+                    ring
+                    configuration.label
+                }
+            )
         }
     }
 }
