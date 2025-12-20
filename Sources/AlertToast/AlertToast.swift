@@ -267,15 +267,11 @@ public struct AlertToast: View{
                                     .monospacedDigit()
                             } else {
                                 ProgressView(value: value)
+                                    .monospacedDigit()
                             }
                         }
-                        .progressViewStyle(
-                            CircularRingProgressViewStyle(
-                                color: progressColor,
-                                lineWidth: 3,
-                                size: 20
-                            )
-                        )
+                        .progressViewStyle(.linear)
+                        .accentColor(progressColor)
                     case .loading:
                          ActivityIndicator(color: style?.activityIndicatorColor ?? .white)
                     case .regular:
@@ -331,6 +327,7 @@ public struct AlertToast: View{
                                 .monospacedDigit()
                         } else {
                             ProgressView(value: value)
+                                .monospacedDigit()
                         }
                     }
                     .progressViewStyle(
@@ -418,17 +415,18 @@ public struct AlertToast: View{
                 Group {
                     if let title {
                         ProgressView(LocalizedStringKey(title), value: value)
+                            .monospacedDigit()
                         
                     } else {
                         ProgressView(value: value)
+                            .monospacedDigit()
                     }
                 }
                 .progressViewStyle(
                     CircularRingProgressViewStyle(
                         color: progressColor,
                         lineWidth: 5,
-                        size: 44,
-                        orientation: .vertical
+                        size: 56
                     )
                 )
             case .loading:
@@ -437,19 +435,21 @@ public struct AlertToast: View{
                 EmptyView()
             }
             
-            VStack(spacing: type == .regular ? 8 : 2){
-                if let title = title {
-                    Text(LocalizedStringKey(title))
-                        .font(style?.titleFont ?? Font.body.bold())
-                        .multilineTextAlignment(.center)
-                        .textColor(style?.titleColor ?? nil)
-                }
-                if let subTitle = subTitle {
-                    Text(LocalizedStringKey(subTitle))
-                        .font(style?.subTitleFont ?? Font.footnote)
-                        .opacity(0.7)
-                        .multilineTextAlignment(.center)
-                        .textColor(style?.subtitleColor ?? nil)
+            if !isProgress {
+                VStack(spacing: type == .regular ? 8 : 2){
+                    if let title = title {
+                        Text(LocalizedStringKey(title))
+                            .font(style?.titleFont ?? Font.body.bold())
+                            .multilineTextAlignment(.center)
+                            .textColor(style?.titleColor ?? nil)
+                    }
+                    if let subTitle = subTitle {
+                        Text(LocalizedStringKey(subTitle))
+                            .font(style?.subTitleFont ?? Font.footnote)
+                            .opacity(0.7)
+                            .multilineTextAlignment(.center)
+                            .textColor(style?.subtitleColor ?? nil)
+                    }
                 }
             }
         }
@@ -741,49 +741,30 @@ fileprivate struct TextForegroundModifier: ViewModifier{
 
 @available(iOS 14, macOS 11, *)
 fileprivate struct CircularRingProgressViewStyle: ProgressViewStyle {
-    enum Orientation {
-        case horizontal
-        case vertical
-    }
-
     var color: Color = .accentColor
     var lineWidth: CGFloat = 4
     var size: CGFloat = 22
-    var orientation: Orientation = .horizontal
 
     func makeBody(configuration: Configuration) -> some View {
         let fraction = CGFloat(min(max(configuration.fractionCompleted ?? 0, 0), 1))
 
-        let ring = ZStack {
-            Circle()
-                .stroke(color.opacity(0.2), lineWidth: lineWidth)
+        return HStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .stroke(color.opacity(0.2), lineWidth: lineWidth)
 
-            Circle()
-                .trim(from: 0, to: fraction)
-                .stroke(
-                    color,
-                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.2), value: fraction)
-        }
-        .frame(width: size, height: size, alignment: .center)
+                Circle()
+                    .trim(from: 0, to: fraction)
+                    .stroke(
+                        color,
+                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 0.2), value: fraction)
+            }
+            .frame(width: size, height: size, alignment: .center)
 
-        switch orientation {
-        case .horizontal:
-            return AnyView(
-                HStack(spacing: 12) {
-                    ring
-                    configuration.label
-                }
-            )
-        case .vertical:
-            return AnyView(
-                VStack(spacing: 8) {
-                    ring
-                    configuration.label
-                }
-            )
+            configuration.label
         }
     }
 }
