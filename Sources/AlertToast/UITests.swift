@@ -8,16 +8,38 @@
 import SwiftUI
 
 struct TestView: View {
-    let progress = 0.3
+    @State var progress = 0.0
+    @State var displayToast = false
     
     var body: some View {
-        VStack {
-            Text("Progress: \(Int(progress * 100))%")
-            ProgressView(value: progress)
-                .progressViewStyle(LinearProgressViewStyle())
-                .padding()
+        List {
+            Button("Show Progress Toast") {
+                progress = 0.0
+                displayToast = true
+                fireTimer()
+            }
         }
-        .frame(width: 200, height: 100)
+        .toast(
+            isPresenting: $displayToast,
+            alert: {
+                let progressString = String(format: "%.1f", progress)
+                return AlertToast(displayMode: .hud,
+                           type: .progress(progress),
+                           title: "\(progressString) / 1.0")
+            })
+    }
+    
+    func fireTimer() {
+        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
+            let step = 0.05
+            guard progress + step <= 1.0 else {
+                progress = 1.0
+                timer.invalidate()
+                displayToast = false
+                return
+            }
+            progress += step
+        }
     }
 }
 
