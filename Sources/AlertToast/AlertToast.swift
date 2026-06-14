@@ -213,6 +213,19 @@ public struct AlertToast: View{
     private var progressColor: Color {
         style?.activityIndicatorColor ?? .accentColor
     }
+
+    @ViewBuilder
+    private func progressTitleView(_ title: String) -> some View {
+        if #available(iOS 17, macOS 14, *) {
+            Text(LocalizedStringKey(title))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .animation(.easeInOut(duration: 0.2), value: title)
+        } else {
+            Text(LocalizedStringKey(title))
+                .monospacedDigit()
+        }
+    }
     
     ///Full init
     public init(displayMode: DisplayMode = .alert,
@@ -263,8 +276,9 @@ public struct AlertToast: View{
                     case .progress(let value):
                         Group {
                             if let title {
-                                ProgressView(LocalizedStringKey(title), value: value)
-                                    .monospacedDigit()
+                                ProgressView(value: value) {
+                                    progressTitleView(title)
+                                }
                             } else {
                                 ProgressView(value: value)
                             }
@@ -327,8 +341,9 @@ public struct AlertToast: View{
                 case .progress(let value):
                     Group {
                         if let title {
-                            ProgressView(LocalizedStringKey(title), value: value)
-                                .monospacedDigit()
+                            ProgressView(value: value) {
+                                progressTitleView(title)
+                            }
                         } else {
                             ProgressView(value: value)
                         }
@@ -417,8 +432,9 @@ public struct AlertToast: View{
             case .progress(let value):
                 Group {
                     if let title {
-                        ProgressView(LocalizedStringKey(title), value: value)
-                            .monospacedDigit() 
+                        ProgressView(value: value) {
+                            progressTitleView(title)
+                        }
                     } else {
                         ProgressView(value: value)
                     }
